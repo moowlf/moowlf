@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on Moowlf</title>
+    <link>http://localhost:1313/posts/</link>
+    <description>Recent content in Posts on Moowlf</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 06 Nov 2024 11:14:46 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Move Semantics</title>
+      <link>http://localhost:1313/posts/2024-11-06-move-semantics/</link>
+      <pubDate>Wed, 06 Nov 2024 11:14:46 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2024-11-06-move-semantics/</guid>
+      <description>Move semantics were added to the C++ standard in 2011 with the release of C++11. In this topic, we discuss some of the drawbacks it aimed to address, as well as how it is being used.</description>
+    </item>
+  </channel>
+</rss>

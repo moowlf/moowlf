@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<style type=text/css>body{font-family:monospace;}</style>
+	<title>Move Semantics</title>
+	
+	
+	<link rel="stylesheet" href="/css/style.css">
+	
+	
+</head>
+<body>
+	<header>
+	============<br>
+	== <a href="http://localhost:1313/">Moowlf</a> ==<br>
+	============
+	<div style="float: right;">On the learning curve</div><br>
+	<p>
+	<nav>
+			<a href="/"><b>Start</b></a>.
+			
+			
+			<a href="/posts/"><b>Posts</b></a>.
+			
+			<a href="/categories/"><b>Categories</b></a>.
+			
+			<a href="/tags/"><b>Tags</b></a>.
+			
+	</nav>
+	</p>
+	
+</header>
+
+	
+	<main>
+		<article>
+			<h1>Move Semantics</h1>
+			<b><time>2024-11-06 11:14:46</time></b>
+		       
+		           <a href="/tags/c&#43;&#43;">c&#43;&#43;</a>
+        	       
+
+			<div>
+				<p>In this article, we explore the various definitions and their meanings of the operator &amp;&amp; in the c++ language.</p>
+<h1 id="move-semantics">Move Semantics</h1>
+<p>Move semantics were added to the C++ standard in 2011 with the release of C++11. In this topic, we discuss some of the drawbacks it aimed to address, as well as how it is being used.</p>
+<h2 id="before-c11">Before c++11</h2>
+<p>Before the introduction of move semantics, the ABCs of a C++ programmer stated that one should follow the rule of three: <em>if you need to define one of copy constructor, copy assignment or destructor, you must define all of them</em>. Sometimes, these constructors were not enough, and the programmer had to program more so it could optimize their code further. For that, the user had to implement both new constructors (that received by ref only instead of const-ref) and possibly declare new swap methods as seen below.</p>
+<p>As one can see, it was possible to use workarounds to reduce copies in your programs. However, the programs lacked clarity. Did the constructor steal any data? Does the function that receives an argument by reference modify it or outright steal its content? Having this in mind, a proposal to introduce move semantics was made and eventually accepted.</p>
+<p>Below you can see a possible implementation of a class using the dynamic pre-move semantics.</p>
+<div class="highlight"><pre tabindex="0" style="color:#272822;background-color:#fafafa;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cpp" data-lang="cpp"><span style="display:flex;"><span><span style="color:#00a8c8">class</span> <span style="color:#75af00">Feathers</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#00a8c8">friend</span> <span style="color:#00a8c8">void</span> <span style="color:#75af00">swap</span><span style="color:#111">(</span><span style="color:#111">Feathers</span><span style="color:#f92672">&amp;</span> <span style="color:#111">a</span><span style="color:#111">,</span> <span style="color:#111">Feathers</span><span style="color:#f92672">&amp;</span> <span style="color:#111">b</span><span style="color:#111">)</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#00a8c8">using</span> <span style="color:#111">std</span><span style="color:#f92672">::</span><span style="color:#111">swap</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">};</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">class</span> <span style="color:#75af00">Dinosaur</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#00a8c8">public</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// Default constructor
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#111">Dinosaur</span><span style="color:#111">()</span> <span style="color:#111">{}</span>
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// User defined constructor
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#111">Dinosaur</span><span style="color:#111">(</span><span style="color:#111">Feathers</span> <span style="color:#111">feathers</span><span style="color:#111">)</span> <span style="color:#111">{</span> <span style="color:#111">mFeathers</span> <span style="color:#f92672">=</span> <span style="color:#111">feathers</span><span style="color:#111">;</span> <span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// Copy Constructor
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#111">Dinosaur</span><span style="color:#111">(</span><span style="color:#111">Dinosaur</span> <span style="color:#00a8c8">const</span><span style="color:#f92672">&amp;</span> <span style="color:#111">rhs</span><span style="color:#111">)</span> <span style="color:#111">{</span> <span style="color:#111">mFeathers</span> <span style="color:#f92672">=</span> <span style="color:#111">rhs</span><span style="color:#111">.</span><span style="color:#111">mFeathers</span><span style="color:#111">;</span> <span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// Copy Constructor that allow stealing
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#111">Dinosaur</span><span style="color:#111">(</span><span style="color:#111">Dinosaur</span><span style="color:#f92672">&amp;</span> <span style="color:#111">rhs</span><span style="color:#111">)</span> <span style="color:#111">{</span> <span style="color:#111">std</span><span style="color:#f92672">::</span><span style="color:#111">swap</span><span style="color:#111">(</span><span style="color:#111">mFeathers</span><span style="color:#111">,</span> <span style="color:#111">rhs</span><span style="color:#111">.</span><span style="color:#111">mFeathers</span><span style="color:#111">);</span> <span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// Copy operator assignment
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#111">Dinosaur</span><span style="color:#f92672">&amp;</span> <span style="color:#00a8c8">operator</span><span style="color:#f92672">=</span><span style="color:#111">(</span><span style="color:#111">Dinosaur</span> <span style="color:#00a8c8">const</span><span style="color:#f92672">&amp;</span> <span style="color:#111">rhs</span><span style="color:#111">)</span> <span style="color:#111">{</span> 
+</span></span><span style="display:flex;"><span>		<span style="color:#111">mFeathers</span> <span style="color:#f92672">=</span> <span style="color:#111">rhs</span><span style="color:#111">.</span><span style="color:#111">mFeathers</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#00a8c8">return</span> <span style="color:#f92672">*</span><span style="color:#00a8c8">this</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// Copy operator assignment that allow stealing
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#111">Dinosaur</span><span style="color:#f92672">&amp;</span> <span style="color:#00a8c8">operator</span><span style="color:#f92672">=</span><span style="color:#111">(</span><span style="color:#111">Dinosaur</span><span style="color:#f92672">&amp;</span> <span style="color:#111">rhs</span><span style="color:#111">)</span> <span style="color:#111">{</span> 
+</span></span><span style="display:flex;"><span>		<span style="color:#111">std</span><span style="color:#f92672">::</span><span style="color:#111">swap</span><span style="color:#111">(</span><span style="color:#111">mFeathers</span><span style="color:#111">,</span> <span style="color:#111">rhs</span><span style="color:#111">.</span><span style="color:#111">mFeathers</span><span style="color:#111">);</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#00a8c8">return</span> <span style="color:#f92672">*</span><span style="color:#00a8c8">this</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// Destructor
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#f92672">~</span><span style="color:#111">Dinosaur</span><span style="color:#111">()</span> <span style="color:#f92672">=</span> <span style="color:#00a8c8">default</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>  <span style="color:#00a8c8">private</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#111">Feathers</span> <span style="color:#111">mFeathers</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">};</span>
+</span></span></code></pre></div><h2 id="c11-changes">C++11 changes</h2>
+<p>The move semantics introduced in the standard 11, made use of some other changes introduced with it. One of them was the need to change the type of expressions available. The other one was the introduction of the operator &amp;&amp; to represent rvalue-references.</p>
+<h3 id="expressions">Expressions</h3>
+<p>In the beginning of the c++ standards,  there were two different types of values. An expression was either an <strong>lvalue</strong> or an <strong>rvalue</strong>. You either represented something in memory and were a <strong>lvalue</strong>, or were a <strong>rvalue</strong>.</p>
+<div class="highlight"><pre tabindex="0" style="color:#272822;background-color:#fafafa;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c++" data-lang="c++"><span style="display:flex;"><span><span style="color:#00a8c8">int</span> <span style="color:#111">lvalue</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">27</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//    ^       ^______ rvalue
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//    lvalue 
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#111">lvalue</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">30</span><span style="color:#111">;</span> <span style="color:#75715e">// &gt; This was considered an rvalue expression
+</span></span></span></code></pre></div><p>Their names are related to where one could find them in expressions. The <strong>lvalue</strong> was found at the left of the equal sign and thus its name <strong>L</strong>eft-<strong>value</strong>. On the other hand, the <strong>rvalue</strong> was found by the right side of equal sign. With the introduction of the C++11, these categories were expanded a little. Instead of only two types of expressions, we got two major categories: <strong>glvalue</strong> and <strong>rvalue</strong> and three <em>subcategories</em>: <strong>lvalue</strong>, <strong>xvalue</strong> and <strong>prvalue</strong>. The <strong>glvalue</strong> category comprises both <strong>lvalue</strong> and <strong>xvalue</strong>. Similarly, the <strong>rvalue</strong> category had two subcategories: <strong>xvalue</strong> and <strong>prvalue</strong>. You can find the definitions provided by a paper for the committee <a href="https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2010/n3055.pdf">1</a>. Summarizing, the definitions are as follow:</p>
+<ul>
+<li><strong>lvalue</strong>: Expressions that designate a function or an object;</li>
+<li><strong>xvalue</strong>: Expressions that designate an object nearing the end of its current lifetime. Its name comes from e<strong>x</strong>piring <strong>value</strong>;</li>
+<li><strong>prvalue</strong>: All expressions that are rvalues but are not at the end of their lifetime.</li>
+<li><strong>glvalue</strong>: Expressions that are either an <strong>lvalue</strong> or an <strong>xvalue</strong>. Its name comes from <strong>g</strong>eneralized values.</li>
+<li><strong>rvalue</strong>: Expressions that are either <strong>xvalue</strong>, a temporary object or a value that is not associated with an object</li>
+</ul>
+<p>Why is this important to know ? To understand what can and what cannot be moved</p>
+<h4 id="move-semantics-1">Move semantics</h4>
+<p>What exactly means to move an object ? Below is a transcript from a paper submitted to the committee.</p>
+<blockquote>
+<p>C and C++ are built on copy semantics. This is a Good Thing. <strong>Move semantics is not an attempt to supplant copy semantics</strong>, nor undermine it in any way. Rather this proposal seeks to augment copy semantics. <strong>A general user defined class might be both copyable and movable</strong>, one or the other, or neither.
+<strong>The difference between a copy and a move is that a copy leaves the source unchanged.</strong> A move on the other hand leaves the source in a state defined differently for each type. The state of the source may be unchanged, or it may be radically different. The only requirement is that the object remain in a self consistent state (all internal invariants are still intact). From a client code point of view, choosing move instead of copy means that you don&rsquo;t care what happens to the state of the source.
+<strong>For PODs, move and copy are identical operations (right down to the machine instruction level).</strong></p>
+</blockquote>
+<p>With the introduction of move semantics, one more constructor and one more assignment operator were introduced.</p>
+<div class="highlight"><pre tabindex="0" style="color:#272822;background-color:#fafafa;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c++" data-lang="c++"><span style="display:flex;"><span><span style="color:#00a8c8">class</span> <span style="color:#75af00">Dinosaur</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#00a8c8">public</span><span style="color:#f92672">:</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#75715e">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>		<span style="color:#75715e">// Move constructor
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#111">Dinosaur</span><span style="color:#111">(</span><span style="color:#111">Dinosaur</span><span style="color:#f92672">&amp;&amp;</span><span style="color:#111">)</span> <span style="color:#00a8c8">noexcept</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>		<span style="color:#75715e">// Move assignment
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#111">Dinosaur</span><span style="color:#f92672">&amp;</span> <span style="color:#00a8c8">operator</span><span style="color:#111">(</span><span style="color:#111">Dinosaur</span><span style="color:#f92672">&amp;&amp;</span><span style="color:#111">)</span> <span style="color:#00a8c8">noexcept</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#75715e">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#111">}</span>
+</span></span></code></pre></div><p>One question that may appear to the most aware is where is the <em>const</em> in the constructor akin the copy constructor. By definition, it makes no sense to have a move constructor with <em>const</em>. How would you perform move operations from object A to object B if A is <em>const</em> ? That would be the same as performing copy operations.</p>
+<p>Back to the example above, this introduction brought some new tokens into an already confusing language. I am talking about the double amps &ldquo;&amp;&amp;&rdquo;. While it is similar to &ldquo;&amp;&rdquo;, the <strong>rvalue reference</strong> token only binds to <strong>r-values</strong>. Other thing that was introduced were the move constructor and move assignment operator. With them, the doubt that existed before, whether the object was stolen or simply modified, was eliminated. When the programmer sees the object did its purpose and can be stripped of its contents, a move constructor/operator is used. To do that, the programmer has to make sure the compiler knows the object can be moved.  Below are some examples easy-to-understand.</p>
+<div class="highlight"><pre tabindex="0" style="color:#272822;background-color:#fafafa;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c++" data-lang="c++"><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;Dinosaur.hpp&#34;</span><span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#75af00">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">Dinosaur</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#111">dino</span><span style="color:#111">)</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#111">std</span><span style="color:#f92672">::</span><span style="color:#111">cout</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#d88200">&#34;Received an rvalue reference to a dino&#34;</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#d88200">&#39;\n&#39;</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#75af00">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">Dinosaur</span> <span style="color:#00a8c8">const</span><span style="color:#f92672">&amp;</span> <span style="color:#111">dino</span><span style="color:#111">)</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#111">std</span><span style="color:#f92672">::</span><span style="color:#111">cout</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#d88200">&#34;Received an const lvalue reference to a dino&#34;</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#d88200">&#39;\n&#39;</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">int</span> <span style="color:#75af00">main</span><span style="color:#111">()</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#111">Dinosaur</span> <span style="color:#111">dino</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// Dino here is an lvalue, therefore it can bind to const&amp;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#111">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">dino</span><span style="color:#111">);</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// &gt; Received an const lvalue reference to a dino
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// Dino here is being told to convert to an rvalue
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#111">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">std</span><span style="color:#f92672">::</span><span style="color:#111">move</span><span style="color:#111">(</span><span style="color:#111">dino</span><span style="color:#111">));</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// &gt; Received an rvalue reference to a dino
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	
+</span></span><span style="display:flex;"><span>	<span style="color:#111">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">Dinosaur</span><span style="color:#111">{});</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// &gt; Received an rvalue reference to a dino
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// &lt;--------------------------------------------------------&gt;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	
+</span></span><span style="display:flex;"><span>	<span style="color:#00a8c8">const</span> <span style="color:#111">dino_1</span> <span style="color:#f92672">=</span> <span style="color:#111">Dinosaur</span><span style="color:#111">();</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#111">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">dino_1</span><span style="color:#111">);</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// -&gt; Received an const lvalue reference to a dino
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#111">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">std</span><span style="color:#f92672">::</span><span style="color:#111">move</span><span style="color:#111">(</span><span style="color:#111">dino_1</span><span style="color:#111">));</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// &gt; Received an const lvalue reference to a dino
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#111">}</span>
+</span></span></code></pre></div><p>Here, it is important to note one of the biggest misnomers in the c++ standard. The <strong>std::move</strong> function does not <strong>move</strong> anything; It merely converts an <strong>lvalue</strong> into a <strong>rvalue</strong> reference!</p>
+<h1 id="universal-references">Universal references</h1>
+<p>The <code>&amp;&amp;</code> implies almost always that the current type is a <strong>rvalue-reference</strong>. However there are some cases in which it does not. in this section, we think in what could possibly have lead the usage of <code>&amp;&amp;</code> to mean other thing other than a rvalue-reference.</p>
+<h3 id="the-problem">The problem</h3>
+<div class="highlight"><pre tabindex="0" style="color:#272822;background-color:#fafafa;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c++" data-lang="c++"><span style="display:flex;"><span><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;Dinosaur.hpp&#34;</span><span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#75af00">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">Dinosaur</span><span style="color:#f92672">&amp;</span> <span style="color:#111">dino</span><span style="color:#111">)</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#111">std</span><span style="color:#f92672">::</span><span style="color:#111">cout</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#d88200">&#34;I am a reference to dino&#34;</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#d88200">&#39;\n&#39;</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#75af00">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">Dinosaur</span> <span style="color:#00a8c8">const</span><span style="color:#f92672">&amp;</span> <span style="color:#111">dino</span><span style="color:#111">)</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#111">std</span><span style="color:#f92672">::</span><span style="color:#111">cout</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#d88200">&#34;I am a const reference to dino&#34;</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#d88200">&#39;\n&#39;</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#75af00">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">Dinosaur</span><span style="color:#f92672">&amp;&amp;</span> <span style="color:#111">dino</span><span style="color:#111">)</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#111">std</span><span style="color:#f92672">::</span><span style="color:#111">cout</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#d88200">&#34;I am a rvalue reference to dino&#34;</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#d88200">&#39;\n&#39;</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">template</span><span style="color:#f92672">&lt;</span><span style="color:#00a8c8">typename</span> <span style="color:#111">T</span><span style="color:#f92672">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#111">print</span><span style="color:#111">(</span><span style="color:#111">T</span> <span style="color:#111">obj</span><span style="color:#111">)</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#111">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">obj</span><span style="color:#111">);</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">int</span> <span style="color:#75af00">main</span><span style="color:#111">()</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#111">Dinosaur</span> <span style="color:#111">dino</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#00a8c8">const</span> <span style="color:#111">Dinosaur</span> <span style="color:#111">dino_1</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#111">print</span><span style="color:#111">(</span><span style="color:#111">dino</span><span style="color:#111">);</span> <span style="color:#75715e">// I am a reference to dino
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#111">print</span><span style="color:#111">(</span><span style="color:#111">dino_1</span><span style="color:#111">);</span> <span style="color:#75715e">// I am a reference to dino
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#111">print</span><span style="color:#111">(</span><span style="color:#111">std</span><span style="color:#f92672">::</span><span style="color:#111">move</span><span style="color:#111">(</span><span style="color:#111">dino</span><span style="color:#111">));</span> <span style="color:#75715e">// I am a reference to dino
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#111">}</span>
+</span></span></code></pre></div><p>This problem arises from the fact that template deduction ignores <em>const</em>-ness and <em>reference</em>-ness. Before trying to solve this problem, I must show you some of the rules that templates follow in order to deduce their type.</p>
+<div class="highlight"><pre tabindex="0" style="color:#272822;background-color:#fafafa;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c++" data-lang="c++"><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// If T is neither &amp; or pointer:
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#00a8c8">template</span><span style="color:#f92672">&lt;</span><span style="color:#00a8c8">typename</span> <span style="color:#111">T</span><span style="color:#f92672">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#111">func</span><span style="color:#111">(</span><span style="color:#111">T</span> <span style="color:#111">param</span><span style="color:#111">);</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Array types decay for the underlying type
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#00a8c8">int</span> <span style="color:#111">arr</span><span style="color:#111">[</span><span style="color:#ae81ff">2</span><span style="color:#111">]</span> <span style="color:#f92672">=</span> <span style="color:#111">{</span><span style="color:#ae81ff">0</span><span style="color:#111">,</span> <span style="color:#ae81ff">0</span><span style="color:#111">};</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">func</span><span style="color:#111">(</span><span style="color:#111">arr</span><span style="color:#111">);</span> <span style="color:#75715e">// T = int*
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// const volatiles are throw away
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#00a8c8">const</span> <span style="color:#00a8c8">int</span> <span style="color:#111">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">func</span><span style="color:#111">(</span><span style="color:#111">i</span><span style="color:#111">);</span> <span style="color:#75715e">// T = int
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// If T is a reference or pointer
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#00a8c8">template</span> <span style="color:#f92672">&lt;</span><span style="color:#00a8c8">typename</span> <span style="color:#111">T</span><span style="color:#f92672">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#111">func_a</span><span style="color:#111">(</span><span style="color:#111">T</span><span style="color:#f92672">&amp;</span> <span style="color:#111">param</span><span style="color:#111">);</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">const</span> <span style="color:#00a8c8">int</span> <span style="color:#111">j</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">func_a</span><span style="color:#111">(</span><span style="color:#111">j</span><span style="color:#111">);</span> <span style="color:#75715e">// T is now const int
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// If T is rvalue reference
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#00a8c8">template</span> <span style="color:#f92672">&lt;</span><span style="color:#00a8c8">typename</span> <span style="color:#111">T</span><span style="color:#f92672">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#111">func_b</span><span style="color:#111">(</span><span style="color:#111">T</span><span style="color:#f92672">&amp;&amp;</span> <span style="color:#111">param</span><span style="color:#111">);</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">int</span> <span style="color:#111">k</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">func_b</span><span style="color:#111">(</span><span style="color:#111">k</span><span style="color:#111">);</span> <span style="color:#75715e">// Since K is an lvalue reference, T -&gt; int&amp;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">const</span> <span style="color:#00a8c8">int</span> <span style="color:#111">l</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">func_b</span><span style="color:#111">(</span><span style="color:#111">l</span><span style="color:#111">);</span> <span style="color:#75715e">// L is const lvalue reference, T -&gt; const int&amp;
+</span></span></span></code></pre></div><h4 id="trying-to-solve-the-problem-1">Trying to solve the problem #1</h4>
+<p>We&rsquo;ve seen that having only one function <code>print</code> as it is will not work. First, we&rsquo;re losing the correct types that we&rsquo;re passing - passing rvalue reference is the same as passing a lvalue reference. Additionally, they way the things stand, we&rsquo;re making copies all over the place even when not needed. One first approach would be to add a <code>&amp;</code>to the function so copies would not be made.</p>
+<div class="highlight"><pre tabindex="0" style="color:#272822;background-color:#fafafa;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c++" data-lang="c++"><span style="display:flex;"><span><span style="color:#00a8c8">template</span><span style="color:#f92672">&lt;</span><span style="color:#00a8c8">typename</span> <span style="color:#111">T</span><span style="color:#f92672">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#111">print</span><span style="color:#111">(</span><span style="color:#111">T</span><span style="color:#f92672">&amp;</span> <span style="color:#111">obj</span><span style="color:#111">)</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#111">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">obj</span><span style="color:#111">);</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">int</span> <span style="color:#75af00">main</span><span style="color:#111">()</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#111">Dinosaur</span> <span style="color:#111">dino</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#00a8c8">const</span> <span style="color:#111">Dinosaur</span> <span style="color:#111">dino_1</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#111">print</span><span style="color:#111">(</span><span style="color:#111">dino</span><span style="color:#111">);</span> <span style="color:#75715e">// I am a reference to dino
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#111">print</span><span style="color:#111">(</span><span style="color:#111">dino_1</span><span style="color:#111">);</span> <span style="color:#75715e">// I am a const reference to dino
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#111">print</span><span style="color:#111">(</span><span style="color:#111">std</span><span style="color:#f92672">::</span><span style="color:#111">move</span><span style="color:#111">(</span><span style="color:#111">dino</span><span style="color:#111">));</span> <span style="color:#75715e">// cannot bind non-const lvalue reference of type...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#111">}</span>
+</span></span></code></pre></div><p>Adding a <code>&amp;</code> appears to work for <em>const</em> objects, however it completely fails for r-value references. C++ standard forbids non const lvalue references to bind to temporary variables.</p>
+<h4 id="trying-to-solve-the-problem-2">Trying to solve the problem #2</h4>
+<p>One of the possible solutions would be to overload the function template as seen below. Adding the previous <code>print</code> to the code would fail miserably since it would give ambiguous calls, that is, the compiler would not know which function should call for a particular type.</p>
+<div class="highlight"><pre tabindex="0" style="color:#272822;background-color:#fafafa;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c++" data-lang="c++"><span style="display:flex;"><span><span style="color:#00a8c8">template</span><span style="color:#f92672">&lt;</span><span style="color:#00a8c8">typename</span> <span style="color:#111">T</span><span style="color:#f92672">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#111">print</span><span style="color:#111">(</span><span style="color:#111">T</span> <span style="color:#111">obj</span><span style="color:#111">)</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#111">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">obj</span><span style="color:#111">);</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">template</span><span style="color:#f92672">&lt;</span><span style="color:#00a8c8">typename</span> <span style="color:#111">T</span><span style="color:#f92672">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#111">print</span><span style="color:#111">(</span><span style="color:#111">T</span><span style="color:#f92672">&amp;</span> <span style="color:#111">obj</span><span style="color:#111">)</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#111">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">obj</span><span style="color:#111">);</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// would be &#34;transformed&#34; to
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#00a8c8">void</span> <span style="color:#75af00">print</span><span style="color:#111">(</span><span style="color:#111">Dinosaur</span> <span style="color:#111">obj</span><span style="color:#111">)</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#75af00">print</span><span style="color:#111">(</span><span style="color:#111">Dinosaur</span><span style="color:#f92672">&amp;</span> <span style="color:#111">obj</span><span style="color:#111">)</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">//...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#111">Dinossaur</span> <span style="color:#111">dino</span><span style="color:#111">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">print</span><span style="color:#111">(</span><span style="color:#111">dino</span><span style="color:#111">);</span> <span style="color:#75715e">// ambiguous call
+</span></span></span></code></pre></div><h4 id="trying-to-solve-the-problem-above-3">Trying to solve the problem above #3</h4>
+<p>We&rsquo;ve seen that overloading the methods will not work. So <strong>universal references</strong> were created. By adding <strong>&amp;&amp;</strong>, we can pass it and have them deduced <em>correctly</em> (more on that later).</p>
+<div class="highlight"><pre tabindex="0" style="color:#272822;background-color:#fafafa;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c++" data-lang="c++"><span style="display:flex;"><span><span style="color:#00a8c8">template</span><span style="color:#f92672">&lt;</span><span style="color:#00a8c8">typename</span> <span style="color:#111">T</span><span style="color:#f92672">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#111">print</span><span style="color:#111">(</span><span style="color:#111">T</span><span style="color:#f92672">&amp;&amp;</span> <span style="color:#111">obj</span><span style="color:#111">)</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#111">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">obj</span><span style="color:#111">);</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">}</span>
+</span></span></code></pre></div><p>This change in the code would make the compiler create the following functions:</p>
+<div class="highlight"><pre tabindex="0" style="color:#272822;background-color:#fafafa;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c++" data-lang="c++"><span style="display:flex;"><span><span style="color:#00a8c8">template</span><span style="color:#f92672">&lt;&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#111">print</span><span style="color:#f92672">&lt;</span><span style="color:#111">Dinosaur</span> <span style="color:#f92672">&amp;&gt;</span><span style="color:#111">(</span><span style="color:#111">Dinosaur</span> <span style="color:#f92672">&amp;</span> <span style="color:#111">obj</span><span style="color:#111">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#111">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">obj</span><span style="color:#111">);</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">template</span><span style="color:#f92672">&lt;&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#111">print</span><span style="color:#f92672">&lt;</span><span style="color:#00a8c8">const</span> <span style="color:#111">Dinosaur</span> <span style="color:#f92672">&amp;&gt;</span><span style="color:#111">(</span><span style="color:#00a8c8">const</span> <span style="color:#111">Dinosaur</span> <span style="color:#f92672">&amp;</span> <span style="color:#111">obj</span><span style="color:#111">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#111">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">obj</span><span style="color:#111">);</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">template</span><span style="color:#f92672">&lt;&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#111">print</span><span style="color:#f92672">&lt;</span><span style="color:#111">Dinosaur</span><span style="color:#f92672">&gt;</span><span style="color:#111">(</span><span style="color:#111">Dinosaur</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#111">obj</span><span style="color:#111">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#111">print_dinosaur</span><span style="color:#111">(</span><span style="color:#111">obj</span><span style="color:#111">);</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">}</span>
+</span></span></code></pre></div><p>OK, now it seems the compiler is working correctly. Running it would prove us wrong very quickly. It appears that our <code>Dinosaur &amp;&amp;</code> is losing its rvalue-reference and choosing the function that receives the parameter by lvalue-reference. This occurs because inside a function, <code>obj</code>would be a <strong>lvalue</strong> reference. In order to fix that, we need to correctly convert it to an rvalue-reference.</p>
+<div class="highlight"><pre tabindex="0" style="color:#272822;background-color:#fafafa;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c++" data-lang="c++"><span style="display:flex;"><span><span style="color:#00a8c8">template</span><span style="color:#f92672">&lt;</span><span style="color:#00a8c8">typename</span> <span style="color:#111">T</span><span style="color:#f92672">&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#00a8c8">void</span> <span style="color:#111">print</span><span style="color:#111">(</span><span style="color:#111">T</span><span style="color:#f92672">&amp;&amp;</span> <span style="color:#111">obj</span><span style="color:#111">)</span> <span style="color:#111">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#111">print_dinosaur</span><span style="color:#111">(</span><span style="color:#00a8c8">static_cast</span><span style="color:#f92672">&lt;</span><span style="color:#111">T</span><span style="color:#f92672">&amp;&amp;&gt;</span><span style="color:#111">(</span><span style="color:#111">obj</span><span style="color:#111">));</span>
+</span></span><span style="display:flex;"><span><span style="color:#111">}</span>
+</span></span></code></pre></div><p>This will compile and make our code run as intended. But what if we pass an <strong>lvalue</strong> reference? This was thought and the solution was called <code>reference colapsing</code>. Below one can see how references collapse:</p>
+<ul>
+<li><code>T&amp;</code> -&gt; <code>&amp;</code> =  <strong>T&amp;</strong></li>
+<li><code>T&amp;</code> -&gt; <code>&amp;&amp;</code> = <strong>T&amp;</strong></li>
+<li><code>T&amp;&amp;</code>-&gt; <code>&amp;</code> = <strong>T&amp;</strong></li>
+<li><code>T&amp;&amp;</code> -&gt; <code>&amp;&amp;</code>= <strong>T&amp;&amp;</strong></li>
+</ul>
+<p>By leveraging the rules of the reference collapsing and the, the programmer can now forward the correct type for other functions. Instead of <code>static_cast</code> the c++ standard gave us the <code>std::forward&lt;T&gt;</code> function. But in general, they serve the same purpose.</p>
+<h3 id="references">References</h3>
+<ul>
+<li><a href="https://learn.microsoft.com/en-us/cpp/cpp/lvalues-and-rvalues-visual-cpp?view=msvc-170">Microsoft</a></li>
+<li><a href="https://www.geeksforgeeks.org/lvalue-and-rvalue-in-c-language/">GeeksforGeeks</a></li>
+<li><a href="https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1377.htm#Introduction">open-std</a></li>
+<li><a href="https://drewcampbell92.medium.com/understanding-move-semantics-and-perfect-forwarding-part-3-65575d523ff8">drewcampbell92</a></li>
+</ul>
+
+			</div>
+		</article>
+	</main>
+<aside>
+	<div>
+		<div>
+			<h3>LATEST POSTS</h3>
+		</div>
+		<div>
+			<ul>
+				
+				<li><a href="/posts/2024-11-06-move-semantics/">Move Semantics</a></li>
+				
+			</ul>
+		</div>
+	</div>
+</aside>
+
+
+	<footer>
+	<p>&copy; 2024 <a href="http://localhost:1313/"><b>Moowlf</b></a>.
+	<a href="https://github.com/moowlf"><b>Github</b></a>.
+	</p>
+</footer>
+
+</body>
+</html>

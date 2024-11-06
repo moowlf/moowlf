@@ -1,0 +1,37 @@
+baseURL = 'https://example.org/'
+languageCode = 'en-us'
+title = 'Moowlf'
+
+theme = "smol"
+
+[params]
+    subtitle = "On the learning curve"
+
+[menu]
+  [[menu.main]]
+        identifier = "posts"
+        name = "Posts"
+        url = "/posts/"
+        weight = 1 
+
+  [[menu.main]]
+        identifier = "categories"
+        name = "Categories"
+        url = "/categories/"
+        weight = 2 
+
+  [[menu.main]]
+        identifier = "tags"
+        name = "Tags"
+        url = "/tags/"
+        weight = 3
+
+  [[menu.footer]]
+          name = "Github"
+          url = "https://github.com/moowlf"
+          weight = 1 
+
+[markup]
+  [markup.highlight]
+    style = 'monokailight'
+    tabWidth = 4

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>C&#43;&#43; on Moowlf</title>
+    <link>http://localhost:1313/tags/c&#43;&#43;/</link>
+    <description>Recent content in C&#43;&#43; on Moowlf</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 06 Nov 2024 11:14:46 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/c++/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Move Semantics</title>
+      <link>http://localhost:1313/posts/2024-11-06-move-semantics/</link>
+      <pubDate>Wed, 06 Nov 2024 11:14:46 +0000</pubDate>
+      <guid>http://localhost:1313/posts/2024-11-06-move-semantics/</guid>
+      <description>In this article, we explore the various definitions and their meanings of the operator &amp;amp;&amp;amp; in the c++ language.&#xA;Move Semantics Move semantics were added to the C++ standard in 2011 with the release of C++11. In this topic, we discuss some of the drawbacks it aimed to address, as well as how it is being used.&#xA;Before c++11 Before the introduction of move semantics, the ABCs of a C++ programmer stated that one should follow the rule of three: if you need to define one of copy constructor, copy assignment or destructor, you must define all of them.</description>
+    </item>
+  </channel>
+</rss>
