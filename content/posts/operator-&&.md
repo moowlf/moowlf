@@ -1,9 +1,9 @@
 ---
-title: "Move Semantics"
+title: "C++ and the && operator"
 date: 2024-11-06T11:14:46Z
 slug: 2024-11-06-move-semantics
 type: posts
-summary: "Move semantics were added to the C++ standard in 2011 with the release of C++11. In this topic, we discuss some of the drawbacks it aimed to address, as well as how it is being used."
+summary: "A brief presentation of move semantics and perfect forwarding"
 draft: false
 categories:
   - Programming
@@ -18,15 +18,15 @@ In this article, we explore the various definitions and their meanings of the op
 
 Move semantics were added to the C++ standard in 2011 with the release of C++11. In this topic, we discuss some of the drawbacks it aimed to address, as well as how it is being used.
 
-## Before c++11
+### Before C++11
 
-Before the introduction of move semantics, the ABCs of a C++ programmer stated that one should follow the rule of three: *if you need to define one of copy constructor, copy assignment or destructor, you must define all of them*. Sometimes, these constructors were not enough, and the programmer had to program more so it could optimize their code further. For that, the user had to implement both new constructors (that received by ref only instead of const-ref) and possibly declare new swap methods as seen below. 
+Before the introduction of move semantics, the ABCs of a C++ programmer stated that one should follow the rule of three: *if you need to define one of copy constructor, copy assignment or destructor, you must define all of them*. Sometimes, these constructors were not enough, and the programmer had to program additional constructors to further optimize code. For that, the user had to implement both new constructors (that received by reference only, instead of const reference) and possibly declare new swap methods as seen below. 
 
 As one can see, it was possible to use workarounds to reduce copies in your programs. However, the programs lacked clarity. Did the constructor steal any data? Does the function that receives an argument by reference modify it or outright steal its content? Having this in mind, a proposal to introduce move semantics was made and eventually accepted. 
 
 Below you can see a possible implementation of a class using the dynamic pre-move semantics.
 
-```cpp
+```c++
 class Feathers {
     friend void swap(Feathers& a, Feathers& b) {
         using std::swap;
@@ -69,12 +69,12 @@ class Dinosaur {
 };
 ```
 
-## C++11 changes
+### C++11 changes
 
 The move semantics introduced in the standard 11, made use of some other changes introduced with it. One of them was the need to change the type of expressions available. The other one was the introduction of the operator && to represent rvalue-references.
-### Expressions
+#### Expressions
 
-In the beginning of the c++ standards,  there were two different types of values. An expression was either an **lvalue** or an **rvalue**. You either represented something in memory and were a **lvalue**, or were a **rvalue**.
+In the beginning of the C++ standards,  there were two different types of values. An expression was either an **lvalue** or an **rvalue**. You either represented something in memory and were a **lvalue**, or were a **rvalue**.
 
 ```c++
 int lvalue = 27;
@@ -84,7 +84,7 @@ int lvalue = 27;
 lvalue + 30; // > This was considered an rvalue expression
 ```
 
-Their names are related to where one could find them in expressions. The **lvalue** was found at the left of the equal sign and thus its name **L**eft-**value**. On the other hand, the **rvalue** was found by the right side of equal sign. With the introduction of the C++11, these categories were expanded a little. Instead of only two types of expressions, we got two major categories: **glvalue** and **rvalue** and three *subcategories*: **lvalue**, **xvalue** and **prvalue**. The **glvalue** category comprises both **lvalue** and **xvalue**. Similarly, the **rvalue** category had two subcategories: **xvalue** and **prvalue**. You can find the definitions provided by a paper for the committee [1](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2010/n3055.pdf). Summarizing, the definitions are as follow:
+Their names are related to where one could find them in expressions. The **lvalue** was found at the left of the equal sign and thus its name **L**eft-**value**. On the other hand, the **rvalue** was found by the right side of equal sign. With the introduction of the C++11, these categories were expanded a little. Instead of only two types of expressions, we got two primary categories: **glvalue** and **rvalue** and three *subcategories*: **lvalue**, **xvalue** and **prvalue**. The **glvalue** category comprises both **lvalue** and **xvalue**. Similarly, the **rvalue** category had two subcategories: **xvalue** and **prvalue**. You can find the definitions provided by a paper for the committee [1](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2010/n3055.pdf). The definitions are as follows:
 
 * **lvalue**: Expressions that designate a function or an object;
 * **xvalue**: Expressions that designate an object nearing the end of its current lifetime. Its name comes from e**x**piring **value**;
@@ -114,7 +114,7 @@ class Dinosaur {
 		Dinosaur(Dinosaur&&) noexcept;
 	
 		// Move assignment
-		Dinosaur& operator(Dinosaur&&) noexcept;
+		Dinosaur& operator=(Dinosaur&&) noexcept;
 
 		// ...
 }
@@ -122,7 +122,7 @@ class Dinosaur {
 
 One question that may appear to the most aware is where is the *const* in the constructor akin the copy constructor. By definition, it makes no sense to have a move constructor with *const*. How would you perform move operations from object A to object B if A is *const* ? That would be the same as performing copy operations.
 
-Back to the example above, this introduction brought some new tokens into an already confusing language. I am talking about the double amps "&&". While it is similar to "&", the **rvalue reference** token only binds to **r-values**. Other thing that was introduced were the move constructor and move assignment operator. With them, the doubt that existed before, whether the object was stolen or simply modified, was eliminated. When the programmer sees the object did its purpose and can be stripped of its contents, a move constructor/operator is used. To do that, the programmer has to make sure the compiler knows the object can be moved.  Below are some examples easy-to-understand.
+Returning to the above example, the introduction of move semantics brought new tokens into what was already a complex language. I am talking about the double amps "&&". While it is similar to "&", the **rvalue reference** token only binds to **r-values**. Other thing that was introduced were the move constructor and move assignment operator. With them, the doubt that existed before, whether the object was stolen or simply modified, was eliminated. When the programmer sees the object did its purpose and can be stripped of its contents, a move constructor/operator is used. To do that, the programmer has to make sure the compiler knows the object can be moved.  Below are some examples easy-to-understand.
 
 ```c++
 
@@ -154,7 +154,7 @@ int main() {
 	
 	// <-------------------------------------------------------->
 	
-	const dino_1 = Dinosaur();
+	const Dinosaur dino_1;
 
 	print_dinosaur(dino_1);
 	// -> Received an const lvalue reference to a dino
@@ -164,7 +164,7 @@ int main() {
 }
 ```
 
-Here, it is important to note one of the biggest misnomers in the c++ standard. The **std::move** function does not **move** anything; It merely converts an **lvalue** into a **rvalue** reference! 
+Here, it is important to note one of the biggest misnomers in the C++ standard. The **std::move** function does not **move** anything; It merely converts an **lvalue** into a **rvalue** reference! 
 
 # Universal references
 
@@ -263,7 +263,7 @@ int main() {
 Adding a `&` appears to work for *const* objects, however it completely fails for r-value references. C++ standard forbids non const lvalue references to bind to temporary variables. 
 #### Trying to solve the problem #2
 
-One of the possible solutions would be to overload the function template as seen below. Adding the previous `print` to the code would fail miserably since it would give ambiguous calls, that is, the compiler would not know which function should call for a particular type.
+One of the possible solutions would be to overload the function template as seen below. Adding the previous *print* to the code would fail miserably since it would give ambiguous calls, that is, the compiler would not know which function should call for a particular type.
 
 
 ```c++
@@ -323,7 +323,7 @@ void print<Dinosaur>(Dinosaur && obj)
 }
 ```
 
-OK, now it seems the compiler is working correctly. Running it would prove us wrong very quickly. It appears that our ```Dinosaur &&``` is losing its rvalue-reference and choosing the function that receives the parameter by lvalue-reference. This occurs because inside a function, `obj`would be a **lvalue** reference. In order to fix that, we need to correctly convert it to an rvalue-reference.
+OK, now it seems the compiler is working correctly. Running it would prove us wrong very quickly. It appears that our *Dinosaur &&* is losing its rvalue-reference and choosing the function that receives the parameter by lvalue-reference. This occurs because inside a function, *obj* would be a **lvalue** reference. In order to fix that, we need to correctly convert it to an rvalue-reference.
 
 ```c++
 template<typename T>
@@ -332,19 +332,17 @@ void print(T&& obj) {
 }
 ```
 
-This will compile and make our code run as intended. But what if we pass an **lvalue** reference? This was thought and the solution was called `reference colapsing`. Below one can see how references collapse:
+This will compile and make our code run as intended. But what if we pass an **lvalue** reference? This was thought and the solution was called *reference colapsing*. Below one can see how references collapse:
 
-- `T&` -> `&` =  **T&**
-- `T&` -> `&&` = **T&**
-- `T&&`-> `&` = **T&**
-- `T&&` -> `&&`= **T&&**
+- T& -> & =  **T&**
+- T& -> && = **T&**
+- T&&-> & = **T&**
+- T&& -> &&= **T&&**
 
-By leveraging the rules of the reference collapsing and the, the programmer can now forward the correct type for other functions. Instead of `static_cast` the c++ standard gave us the ```std::forward<T>``` function. But in general, they serve the same purpose.
+By leveraging the rules of the reference collapsing and the, the programmer can now forward the correct type for other functions. Instead of *static_cast* the standard gave us the *std::forward\<T\>* function. But in general, they serve the same purpose.
 
 ### References
-- [Microsoft](https://learn.microsoft.com/en-us/cpp/cpp/lvalues-and-rvalues-visual-cpp?view=msvc-170)
-- [GeeksforGeeks](https://www.geeksforgeeks.org/lvalue-and-rvalue-in-c-language/)
-- [open-std](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1377.htm#Introduction)
-- [drewcampbell92](https://drewcampbell92.medium.com/understanding-move-semantics-and-perfect-forwarding-part-3-65575d523ff8)
-
-
+- [Lvalues and Rvalues (C++) @ Microsoft](https://learn.microsoft.com/en-us/cpp/cpp/lvalues-and-rvalues-visual-cpp?view=msvc-170)
+- [lvalue and rvalue in C language @ GeeksforGeeks](https://www.geeksforgeeks.org/lvalue-and-rvalue-in-c-language/)
+- [move-proposal @ open-std](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1377.htm#Introduction)
+- [Understanding Move Semantics and Perfect Forwarding: Part 3 @ drewcampbell92](https://drewcampbell92.medium.com/understanding-move-semantics-and-perfect-forwarding-part-3-65575d523ff8)
